@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import VirtualizedScroller from '../VirtualizedScroller';
+import windowViewport from '../VirtualizedScroller/windowViewport';
 import Item from './Item';
 
 type ItemData = {
@@ -16,7 +17,9 @@ type State = {
   items: ItemData[]
 };
 
-const renderItem = ({ id }: ItemData) => <Item color={colorPalette[id % colorPalette.length]} text={String(id)} />;
+const renderItem = ({ id }: ItemData) => (
+  <Item color={colorPalette[id % colorPalette.length]} text={String(id)} />
+);
 const itemKey = (item: ItemData) => String(item.id);
 
 export default class TestBench extends React.Component<Props, State> {
@@ -31,7 +34,12 @@ export default class TestBench extends React.Component<Props, State> {
     const { items } = this.state;
     return (
       <div>
-        <VirtualizedScroller itemKey={itemKey} items={items} renderItem={renderItem} />
+        <VirtualizedScroller
+          itemKey={itemKey}
+          viewport={windowViewport}
+          items={items}
+          renderItem={renderItem}
+        />
       </div>
     );
   }
@@ -45,4 +53,5 @@ const colorPalette = [
   'rgb(115, 210, 222)'
 ];
 
-const createItemList = count => [...Array(count).keys()].map(index => ({ id: index }));
+const createItemList = count =>
+  [...Array(count).keys()].map(index => ({ id: index }));
