@@ -1,3 +1,5 @@
+// @flow
+
 export type Item = {
   data: ItemData,
   key: string

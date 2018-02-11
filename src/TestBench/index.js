@@ -6,7 +6,7 @@ import windowViewport from '../VirtualizedScroller/windowViewport';
 import Item from './Item';
 import { View, Button } from 'react-native-web';
 
-type ItemData = {
+type Elem = {
   id: number
 };
 
@@ -15,13 +15,13 @@ type Props = {
 };
 
 type State = {
-  items: ItemData[]
+  items: Elem[]
 };
 
-const renderItem = ({ id }: ItemData) => (
+const renderItem = ({ id }: Elem) => (
   <Item color={colorPalette[id % colorPalette.length]} text={String(id)} />
 );
-const itemKey = (item: ItemData) => String(item.id);
+const itemKey = (item: Elem) => String(item.id);
 
 export default class TestBench extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -39,10 +39,10 @@ export default class TestBench extends React.Component<Props, State> {
           <Button onPress={this._handlePrepend} title="Prepend 20 items" />
         </View>
         <VirtualizedScroller
-          itemKey={itemKey}
+          itemKey={(itemKey: any)}
           viewport={windowViewport}
-          items={items}
-          renderItem={renderItem}
+          items={(items: any)}
+          renderItem={(renderItem: any)}
         />
       </View>
     );

@@ -46,7 +46,6 @@ export default class VirtualizedScroller extends React.Component<Props, State> {
   render() {
     const { renderItem } = this.props;
     const { rendition, runwayHeight } = this.state;
-    console.log('render', { rendition, runwayHeight });
     return (
       <div
         style={{ position: 'relative', height: `${runwayHeight}px` }}
