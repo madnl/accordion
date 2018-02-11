@@ -3,7 +3,7 @@
 import type { Viewport } from './Viewport';
 import Rectangle from './Rectangle';
 
-const windowViewport = (wnd: any): Viewport => ({
+const windowViewport = (wnd: typeof window): Viewport => ({
   listenToScroll(listener: () => void): () => void {
     wnd.addEventListener('scroll', listener);
     return () => {

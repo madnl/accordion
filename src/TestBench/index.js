@@ -4,6 +4,7 @@ import * as React from 'react';
 import VirtualizedScroller from '../VirtualizedScroller';
 import windowViewport from '../VirtualizedScroller/windowViewport';
 import Item from './Item';
+import { View, Button } from 'react-native-web';
 
 type ItemData = {
   id: number
@@ -26,23 +27,33 @@ export default class TestBench extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
-      items: createItemList(props.initialCount)
+      items: createItemList(0, props.initialCount)
     };
   }
 
   render() {
     const { items } = this.state;
     return (
-      <div>
+      <View>
+        <View>
+          <Button onPress={this._handlePrepend} title="Prepend 20 items" />
+        </View>
         <VirtualizedScroller
           itemKey={itemKey}
           viewport={windowViewport}
           items={items}
           renderItem={renderItem}
         />
-      </div>
+      </View>
     );
   }
+
+  _handlePrepend = () => {
+    const { items } = this.state;
+    this.setState({
+      items: [...createItemList(items.length, items.length + 20), ...items]
+    });
+  };
 }
 
 const colorPalette = [
@@ -53,5 +64,7 @@ const colorPalette = [
   'rgb(115, 210, 222)'
 ];
 
-const createItemList = count =>
-  [...Array(count).keys()].map(index => ({ id: index }));
+const createItemList = (indexStart, indexEnd) =>
+  [...Array(indexEnd - indexStart).keys()].map(index => ({
+    id: index + indexStart
+  }));
