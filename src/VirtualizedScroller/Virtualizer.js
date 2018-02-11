@@ -5,6 +5,8 @@ import Rectangle from './Rectangle';
 import type { Viewport } from './Viewport';
 import type { Item } from './types';
 import collect from '../modules/collect';
+import collectLast from '../modules/collectLast';
+import Cell from './Cell';
 
 type Props<T> = {|
   list: Item<T>[],
@@ -67,7 +69,7 @@ export default class Virtualizer<T> extends React.Component<
                 width: '100%'
               }}
             >
-              {renderItem(data)}
+              <Cell renderItem={renderItem} data={data} />
             </div>
           );
         })}
@@ -81,7 +83,9 @@ export default class Virtualizer<T> extends React.Component<
     this.setState({
       rendition: rendition.filter(({ item }) => nextItemSet.has(item.key))
     });
-    this._scheduleLayoutUpdate();
+    window.requestAnimationFrame(() => {
+      this._updateLayout();
+    });
   }
 
   shouldComponentUpdate(nextProps: Props<T>, nextState: State<T>) {
@@ -125,15 +129,13 @@ export default class Virtualizer<T> extends React.Component<
       .translateBy(-runwayTop);
     const { list } = this.props;
     const nextRendition = collect(list, item => {
-      const r = getOrInitRectangle(this._layout, item.key);
-      return r.doesIntersectWith(viewportRect)
+      const r = this._layout.get(item.key);
+      return r && r.doesIntersectWith(viewportRect) && r.top >= 0
         ? { item, offset: r.top }
         : undefined;
     });
-    const lastItem = list.length > 0 && list[list.length - 1];
-    const runwayHeight = lastItem
-      ? getOrInitRectangle(this._layout, lastItem.key).bottom
-      : 0;
+    const lastRectangle = collectLast(list, ({ key }) => this._layout.get(key));
+    const runwayHeight = lastRectangle ? lastRectangle.bottom : 0;
     this.setState({ rendition: nextRendition, runwayHeight });
   }
 
@@ -153,15 +155,30 @@ export default class Virtualizer<T> extends React.Component<
 
   _scheduleLayoutUpdate() {
     window.requestAnimationFrame(() => {
-      const heightDelta = this._recordLayout();
+      const heightDelta = this._recordHeights();
       if (heightDelta > 1) {
-        relaxLayout(this.props.list, this._layout);
-        this._updateRendition();
+        this._updateLayout();
       }
     });
   }
 
-  _recordLayout() {
+  _updateLayout() {
+    const { list } = this.props;
+    if (list.length > 0) {
+      const { rendition } = this.state;
+      const firstRenderedItemKey =
+        rendition.length > 0 && rendition[0].item.key;
+      const pivotIndex = list.findIndex(
+        ({ key }) => key === firstRenderedItemKey
+      );
+      if (pivotIndex >= 0) {
+        relaxLayout(this.props.list, this._layout, pivotIndex);
+        this._updateRendition();
+      }
+    }
+  }
+
+  _recordHeights() {
     let delta = 0;
     this._refs.forEach((elem, key) => {
       const height = elem.getBoundingClientRect().height;
@@ -178,17 +195,33 @@ function initializeLayout<T>(list: Item<T>[]): Layout {
   list.forEach(({ key }) => {
     layout.set(key, new Rectangle(0, ASSUMED_HEIGHT));
   });
-  relaxLayout(list, layout);
+  relaxLayout(list, layout, 0);
   return layout;
 }
 
-function relaxLayout<T>(list: Item<T>[], layout: Layout): void {
-  let top = 0;
-  list.forEach(({ key }) => {
-    const r = getOrInitRectangle(layout, key);
-    r.top = top;
+function relaxLayout<T>(
+  list: Item<T>[],
+  layout: Layout,
+  pivotIndex: number
+): void {
+  const pivotRectangle = layout.get(list[pivotIndex].key);
+  if (!pivotRectangle) {
+    return;
+  }
+  let top = pivotRectangle.bottom;
+  for (let i = pivotIndex + 1; i < list.length; i++) {
+    const item = list[i];
+    const r = getOrInitRectangle(layout, item.key);
+    r.top = Math.ceil(top);
     top = r.bottom;
-  });
+  }
+  let bottom = pivotRectangle.top;
+  for (let i = pivotIndex - 1; i >= 0; i--) {
+    const item = list[i];
+    const r = getOrInitRectangle(layout, item.key);
+    r.top = Math.floor(bottom - r.height);
+    bottom = r.top;
+  }
 }
 
 const getOrInitRectangle = (layout: Layout, key: string): Rectangle => {
