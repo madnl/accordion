@@ -2,23 +2,24 @@
 
 import * as React from 'react';
 import Virtualizer from './Virtualizer';
-import type { Item, ItemData } from './types';
+import type { Item } from './types';
 import type { Viewport } from './Viewport';
 
-const createList = (items, itemKey) =>
-  items.map(item => ({ data: item, key: itemKey(item) }));
+function createList<A>(items: A[], itemKey: A => string): Item<A>[] {
+  return items.map(item => ({ data: item, key: itemKey(item) }));
+}
 
-type Props = {
-  items: ItemData[],
-  itemKey: ItemData => string,
-  renderItem: ItemData => React.Node,
+type Props<T> = {
+  items: T[],
+  itemKey: T => string,
+  renderItem: T => React.Node,
   viewport: Viewport
 };
 
-export default class VirtualizedScroller extends React.Component<Props> {
-  _list: Item[];
+export default class VirtualizedScroller<T> extends React.Component<Props<T>> {
+  _list: Item<T>[];
 
-  constructor(props: Props) {
+  constructor(props: Props<T>) {
     super(props);
     this._list = createList(props.items, props.itemKey);
   }
@@ -34,7 +35,7 @@ export default class VirtualizedScroller extends React.Component<Props> {
     );
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  componentWillReceiveProps(nextProps: Props<T>) {
     if (
       this.props.items !== nextProps.items ||
       this.props.itemKey !== nextProps.itemKey

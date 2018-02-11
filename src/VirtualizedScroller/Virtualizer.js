@@ -3,22 +3,22 @@
 import * as React from 'react';
 import Rectangle from './Rectangle';
 import type { Viewport } from './Viewport';
-import type { Item, ItemData } from './types';
+import type { Item } from './types';
 import collect from '../modules/collect';
 
-type Props = {|
-  list: Item[],
-  renderItem: ItemData => React.Node,
+type Props<T> = {|
+  list: Item<T>[],
+  renderItem: T => React.Node,
   viewport: Viewport
 |};
 
-type RenderableItem = {
-  item: Item,
+type RenderableItem<T> = {
+  item: Item<T>,
   offset: number
 };
 
-type State = {|
-  rendition: RenderableItem[],
+type State<T> = {|
+  rendition: RenderableItem<T>[],
   runwayHeight: number
 |};
 
@@ -26,13 +26,16 @@ type Layout = Map<string, Rectangle>;
 
 const ASSUMED_HEIGHT = 100;
 
-export default class VirtualizedScroller extends React.Component<Props, State> {
+export default class Virtualizer<T> extends React.Component<
+  Props<T>,
+  State<T>
+> {
   _layout: Layout;
   _refs: Map<string, HTMLElement>;
   _runway: ?HTMLElement;
   _unlistenToScroll: ?() => void;
 
-  constructor(props: Props) {
+  constructor(props: Props<T>) {
     super(props);
     this._layout = initializeLayout(props.list);
     this._refs = new Map();
@@ -72,7 +75,7 @@ export default class VirtualizedScroller extends React.Component<Props, State> {
     );
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  componentWillReceiveProps(nextProps: Props<T>) {
     const { rendition } = this.state;
     const nextItemSet = new Set(nextProps.list.map(item => item.key));
     this.setState({
@@ -81,7 +84,7 @@ export default class VirtualizedScroller extends React.Component<Props, State> {
     this._scheduleLayoutUpdate();
   }
 
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
+  shouldComponentUpdate(nextProps: Props<T>, nextState: State<T>) {
     if (this.props.renderItem !== nextProps.renderItem) {
       return true;
     }
@@ -143,7 +146,9 @@ export default class VirtualizedScroller extends React.Component<Props, State> {
   }
 
   _handleScroll = () => {
-    this._updateRendition();
+    window.requestAnimationFrame(() => {
+      this._updateRendition();
+    });
   };
 
   _scheduleLayoutUpdate() {
@@ -168,22 +173,23 @@ export default class VirtualizedScroller extends React.Component<Props, State> {
   }
 }
 
-const initializeLayout = list => {
-  const layout: Map<string, Rectangle> = new Map(
-    list.map(({ key }) => [key, new Rectangle(0, ASSUMED_HEIGHT)])
-  );
+function initializeLayout<T>(list: Item<T>[]): Layout {
+  const layout: Map<string, Rectangle> = new Map();
+  list.forEach(({ key }) => {
+    layout.set(key, new Rectangle(0, ASSUMED_HEIGHT));
+  });
   relaxLayout(list, layout);
   return layout;
-};
+}
 
-const relaxLayout = (list, layout) => {
+function relaxLayout<T>(list: Item<T>[], layout: Layout): void {
   let top = 0;
   list.forEach(({ key }) => {
     const r = getOrInitRectangle(layout, key);
     r.top = top;
     top = r.bottom;
   });
-};
+}
 
 const getOrInitRectangle = (layout: Layout, key: string): Rectangle => {
   let r = layout.get(key);
@@ -202,7 +208,8 @@ const isEqualRendition = (prevRendition, nextRendition) => {
     const prevItem = prevRendition[i];
     const nextItem = nextRendition[i];
     if (
-      prevItem.item !== nextItem.item ||
+      prevItem.item.key !== nextItem.item.key ||
+      prevItem.item.data !== nextItem.item.data ||
       prevItem.offset !== nextItem.offset
     ) {
       return false;

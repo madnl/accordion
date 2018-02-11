@@ -1,8 +1,6 @@
 // @flow
 
-export type Item = {
-  data: ItemData,
+export type Item<T> = {
+  data: T,
   key: string
 };
-
-export type ItemData = mixed;

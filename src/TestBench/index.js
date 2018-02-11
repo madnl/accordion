@@ -39,10 +39,10 @@ export default class TestBench extends React.Component<Props, State> {
           <Button onPress={this._handlePrepend} title="Prepend 20 items" />
         </View>
         <VirtualizedScroller
-          itemKey={(itemKey: any)}
+          itemKey={itemKey}
           viewport={windowViewport}
-          items={(items: any)}
-          renderItem={(renderItem: any)}
+          items={items}
+          renderItem={renderItem}
         />
       </View>
     );
