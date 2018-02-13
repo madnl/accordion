@@ -7,6 +7,7 @@ import type { Item } from './types';
 import collect from '../modules/collect';
 import collectLast from '../modules/collectLast';
 import Cell from './Cell';
+import collectFirst from '../modules/collectFirst';
 
 type Props<T> = {|
   list: Item<T>[],
@@ -51,6 +52,10 @@ export default class Virtualizer<T> extends React.Component<
   render() {
     const { renderItem } = this.props;
     const { rendition, runwayHeight } = this.state;
+    console.log(
+      'render',
+      rendition.map(({ item: { key }, offset }) => ({ key, offset }))
+    );
     return (
       <div
         style={{ position: 'relative', height: `${runwayHeight}px` }}
@@ -84,7 +89,7 @@ export default class Virtualizer<T> extends React.Component<
       rendition: rendition.filter(({ item }) => nextItemSet.has(item.key))
     });
     window.requestAnimationFrame(() => {
-      this._updateLayout();
+      this._relaxLayout();
     });
   }
 
@@ -139,6 +144,14 @@ export default class Virtualizer<T> extends React.Component<
     this.setState({ rendition: nextRendition, runwayHeight });
   }
 
+  _updateRenditionPositions() {
+    const nextRendition = collect(this.state.rendition, ({ item }) => {
+      const r = this._layout.get(item.key);
+      return r && { item, offset: r.top };
+    });
+    this.setState({ rendition: nextRendition });
+  }
+
   _setRef(key: string, elem: ?HTMLElement) {
     if (elem) {
       this._refs.set(key, elem);
@@ -149,20 +162,62 @@ export default class Virtualizer<T> extends React.Component<
 
   _handleScroll = () => {
     window.requestAnimationFrame(() => {
-      this._updateRendition();
+      if (this._shouldNormalize()) {
+        this._normalizeTop();
+      } else {
+        this._updateRendition();
+      }
     });
   };
+
+  _relativeViewRect() {
+    const runwayRect = this._runway && this._runway.getBoundingClientRect();
+    return (
+      runwayRect &&
+      this.props.viewport.getRectangle().translateBy(-runwayRect.top)
+    );
+  }
+
+  _shouldNormalize() {
+    const viewRect = this._relativeViewRect();
+    if (!viewRect) {
+      return;
+    }
+    const { list } = this.props;
+    const result = collectFirst(list, item => {
+      const r = this._layout.get(item.key);
+      return (
+        r &&
+        r.doesIntersectWith(viewRect) && {
+          firstInViewRect: r,
+          firstInViewIndex
+        }
+      );
+    });
+    console.log('_shouldNormalize', {
+      ...result,
+      viewRect,
+      first: this._layout.get(list[0].key)
+    });
+    if (!result) {
+      return;
+    }
+    const { firstInViewRect, firstInViewIndex } = result;
+    return (
+      (firstInViewRect && firstInViewRect.top < 0) || firstInViewIndex === 0
+    );
+  }
 
   _scheduleLayoutUpdate() {
     window.requestAnimationFrame(() => {
       const heightDelta = this._recordHeights();
       if (heightDelta > 1) {
-        this._updateLayout();
+        this._relaxLayout();
       }
     });
   }
 
-  _updateLayout() {
+  _relaxLayout() {
     const { list } = this.props;
     if (list.length > 0) {
       const { rendition } = this.state;
@@ -176,6 +231,28 @@ export default class Virtualizer<T> extends React.Component<
         this._updateRendition();
       }
     }
+  }
+
+  _normalizeTop() {
+    const { list } = this.props;
+    const result = collectFirst(list, (item, index) => {
+      const firstRectangle = this._layout.get(item.key);
+      return firstRectangle && { firstRectangle, index };
+    });
+    if (!result) {
+      return;
+    }
+    const { firstRectangle, index } = result;
+    if (firstRectangle.top === 0) {
+      return;
+    }
+    const shift = -firstRectangle.top;
+    firstRectangle.top = 0;
+    relaxLayout(list, this._layout, index);
+    // console.log(list.map(({ key }) => ({ key, r: this._layout.get(key) })));
+    this._updateRenditionPositions();
+    console.log('scrollBy', shift);
+    this.props.viewport.scrollBy(shift);
   }
 
   _recordHeights() {

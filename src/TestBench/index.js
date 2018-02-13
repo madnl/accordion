@@ -23,6 +23,8 @@ const renderItem = ({ id }: Elem) => (
 );
 const itemKey = (item: Elem) => String(item.id);
 
+const PREPEND_COUNT = 2;
+
 export default class TestBench extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -36,7 +38,10 @@ export default class TestBench extends React.Component<Props, State> {
     return (
       <View>
         <View>
-          <Button onPress={this._handlePrepend} title="Prepend 20 items" />
+          <Button
+            onPress={this._handlePrepend}
+            title={`Prepend ${PREPEND_COUNT} items`}
+          />
         </View>
         <VirtualizedScroller
           itemKey={itemKey}
@@ -51,7 +56,10 @@ export default class TestBench extends React.Component<Props, State> {
   _handlePrepend = () => {
     const { items } = this.state;
     this.setState({
-      items: [...createItemList(items.length, items.length + 20), ...items]
+      items: [
+        ...createItemList(items.length, items.length + PREPEND_COUNT),
+        ...items
+      ]
     });
   };
 }

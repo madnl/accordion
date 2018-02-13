@@ -5,7 +5,7 @@ import TestBench from './TestBench';
 
 class App extends React.Component<{}> {
   render() {
-    return <TestBench initialCount={100} />;
+    return <TestBench initialCount={10} />;
   }
 }
 
