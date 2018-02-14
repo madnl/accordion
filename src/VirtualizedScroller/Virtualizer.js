@@ -47,15 +47,17 @@ export default class Virtualizer<T> extends React.Component<
       rendition: [],
       runwayHeight: 0
     };
+    // TODO: remove
+    window.v = this;
   }
 
   render() {
     const { renderItem } = this.props;
     const { rendition, runwayHeight } = this.state;
-    console.log(
-      'render',
-      rendition.map(({ item: { key }, offset }) => ({ key, offset }))
-    );
+    // console.log(
+    //   'render',
+    //   rendition.map(({ item: { key }, offset }) => ({ key, offset }))
+    // );
     return (
       <div
         style={{ position: 'relative', height: `${runwayHeight}px` }}
@@ -89,7 +91,7 @@ export default class Virtualizer<T> extends React.Component<
       rendition: rendition.filter(({ item }) => nextItemSet.has(item.key))
     });
     window.requestAnimationFrame(() => {
-      this._relaxLayout();
+      this._relaxLayout(renditionKeys(rendition));
     });
   }
 
@@ -118,20 +120,15 @@ export default class Virtualizer<T> extends React.Component<
     }
   }
 
-  componentDidUpdate() {
-    this._scheduleLayoutUpdate();
+  componentDidUpdate(prevProps: Props<T>, prevState: State<T>) {
+    this._scheduleLayoutUpdate(renditionKeys(prevState.rendition));
   }
 
   _updateRendition() {
-    if (!this._runway) {
+    const viewportRect = this._relativeViewRect();
+    if (!viewportRect) {
       return;
     }
-    const runwayTop = this._runway
-      ? this._runway.getBoundingClientRect().top
-      : 0;
-    const viewportRect = this.props.viewport
-      .getRectangle()
-      .translateBy(-runwayTop);
     const { list } = this.props;
     const nextRendition = collect(list, item => {
       const r = this._layout.get(item.key);
@@ -141,14 +138,19 @@ export default class Virtualizer<T> extends React.Component<
     });
     const lastRectangle = collectLast(list, ({ key }) => this._layout.get(key));
     const runwayHeight = lastRectangle ? lastRectangle.bottom : 0;
+    // console.log('_updateRendition', { viewportRect });
+    // !isEqualRendition(this.state.rendition, nextRendition) &&
+    //   printRenditionSummary('_updateRendition/set', nextRendition);
     this.setState({ rendition: nextRendition, runwayHeight });
   }
 
-  _updateRenditionPositions() {
+  _relayoutRendition() {
     const nextRendition = collect(this.state.rendition, ({ item }) => {
       const r = this._layout.get(item.key);
       return r && { item, offset: r.top };
     });
+    // !isEqualRendition(this.state.rendition, nextRendition) &&
+    //   printRenditionSummary('_updateRenditionPositions/set', nextRendition);
     this.setState({ rendition: nextRendition });
   }
 
@@ -194,11 +196,11 @@ export default class Virtualizer<T> extends React.Component<
         }
       );
     });
-    console.log('_shouldNormalize', {
-      ...result,
-      viewRect,
-      first: this._layout.get(list[0].key)
-    });
+    // console.log('_shouldNormalize', {
+    //   ...result,
+    //   viewRect,
+    //   first: this._layout.get(list[0].key)
+    // });
     if (!result) {
       return;
     }
@@ -208,28 +210,27 @@ export default class Virtualizer<T> extends React.Component<
     );
   }
 
-  _scheduleLayoutUpdate() {
+  _scheduleLayoutUpdate(pivotCandidates: Set<string>) {
     window.requestAnimationFrame(() => {
       const heightDelta = this._recordHeights();
       if (heightDelta > 1) {
-        this._relaxLayout();
+        this._relaxLayout(pivotCandidates);
       }
     });
   }
 
-  _relaxLayout() {
+  _relaxLayout(pivotCandidates: Set<string>) {
     const { list } = this.props;
     if (list.length > 0) {
       const { rendition } = this.state;
-      const firstRenderedItemKey =
-        rendition.length > 0 && rendition[0].item.key;
-      const pivotIndex = list.findIndex(
-        ({ key }) => key === firstRenderedItemKey
+      const currentRendered = renditionKeys(rendition);
+      const firstCommonIndex = list.findIndex(
+        ({ key }) => pivotCandidates.has(key) && currentRendered.has(key)
       );
-      if (pivotIndex >= 0) {
-        relaxLayout(this.props.list, this._layout, pivotIndex);
-        this._updateRendition();
-      }
+      const pivotIndex = firstCommonIndex >= 0 ? firstCommonIndex : 0;
+      console.log('_relaxLayout', { key: list[pivotIndex].key });
+      relaxLayout(this.props.list, this._layout, pivotIndex);
+      this._updateRendition();
     }
   }
 
@@ -250,8 +251,8 @@ export default class Virtualizer<T> extends React.Component<
     firstRectangle.top = 0;
     relaxLayout(list, this._layout, index);
     // console.log(list.map(({ key }) => ({ key, r: this._layout.get(key) })));
-    this._updateRenditionPositions();
-    console.log('scrollBy', shift);
+    this._relayoutRendition();
+    // console.log('scrollBy', shift);
     this.props.viewport.scrollBy(shift);
   }
 
@@ -327,3 +328,17 @@ const isEqualRendition = (prevRendition, nextRendition) => {
   }
   return true;
 };
+
+function renditionKeys<T>(rendition: RenderableItem<T>[]): Set<string> {
+  return new Set(rendition.map(({ item: { key } }) => key));
+}
+
+function printRenditionSummary<T>(
+  title: string,
+  rendition: RenderableItem<T>[]
+) {
+  const obj = new Map(
+    rendition.map(({ item: { key }, offset }) => [key, offset])
+  );
+  console.log(title, obj);
+}
