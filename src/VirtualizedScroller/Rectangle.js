@@ -25,7 +25,7 @@ export default class Rectangle {
     return this.top <= point && point < this.bottom;
   }
 
-  translateBy(offset: number): Rectangle {
+  translatedBy(offset: number): Rectangle {
     return new Rectangle(this.top + offset, this.height);
   }
 }
