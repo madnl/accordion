@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { Viewport } from './Viewport';
-import type { Item, RenderableItem } from './types';
+import type { Item, Rendition } from './types';
 import Cell from './Cell';
 import * as Helper from './helper';
 import Scheduler from '../modules/Scheduler';
@@ -16,7 +16,7 @@ type Props<T> = {|
 |};
 
 type State<T> = {|
-  rendition: RenderableItem<T>[],
+  rendition: Rendition<T>,
   runwayHeight: number
 |};
 
@@ -24,10 +24,12 @@ type UpdateOptions = {
   syncHeights?: boolean,
   relaxLayout?: boolean,
   updateRendition?: boolean,
-  quiescent?: boolean
+  pivotPreference?: Set<string>
 };
 
 const HEIGHT_ESTIMATOR = () => 100;
+
+const EMPTY_SET = new Set();
 
 export default class Virtualizer<T> extends React.Component<
   Props<T>,
@@ -52,13 +54,22 @@ export default class Virtualizer<T> extends React.Component<
     window.v = this;
   }
 
+  // remove
+  counter = 0;
+
+  componentWillUpdate() {
+    console.timeStamp(`render-${this.counter}`);
+  }
+
   render() {
     const { renderItem } = this.props;
     const { rendition, runwayHeight } = this.state;
-    // console.log(
-    //   'render',
-    //   rendition.map(({ item: { key }, offset }) => ({ key, offset }))
-    // );
+    console.log(
+      `render-${this.counter}`,
+      rendition.map(({ item: { key }, offset }) => ({ key, offset }))
+    );
+    // console.timeStamp(`render-${this.counter}`);
+    this.counter++;
     return (
       <div
         style={{ position: 'relative', height: `${runwayHeight}px` }}
@@ -90,7 +101,10 @@ export default class Virtualizer<T> extends React.Component<
     this.setState({
       rendition: Helper.pruneMissing(rendition, nextProps.list)
     });
-    this._scheduleUpdateInNextFrame({ updateRendition: true });
+    this._scheduleUpdateInNextFrame({
+      relaxLayout: true,
+      updateRendition: true
+    });
   }
 
   shouldComponentUpdate(nextProps: Props<T>, nextState: State<T>) {
@@ -119,8 +133,11 @@ export default class Virtualizer<T> extends React.Component<
     }
   }
 
-  componentDidUpdate() {
-    this._scheduleUpdateInNextFrame({ syncHeights: true });
+  componentDidUpdate(prevProps: Props<T>, prevState: State<T>) {
+    this._scheduleUpdateInNextFrame({
+      syncHeights: true,
+      pivotPreference: Helper.renditionKeys(prevState.rendition)
+    });
   }
 
   _update(options: UpdateOptions) {
@@ -128,17 +145,29 @@ export default class Virtualizer<T> extends React.Component<
     if (!viewportRect) {
       return;
     }
+    console.log('_update', options);
     const { list } = this.props;
     let heightsChanged = false;
     let layoutChanged = false;
     let scrollAdjustment = 0;
+    let nextState: { rendition?: Rendition<T>, runwayHeight?: number } = {};
     if (options.syncHeights) {
       heightsChanged = this._recordHeights();
     }
     if (options.relaxLayout || heightsChanged) {
       // TODO: get previous rendition
       const pivotIndex =
-        Helper.findPivotIndex(list, this.state.rendition, []) || 0;
+        Helper.findPivotIndex(
+          list,
+          this.state.rendition,
+          options.pivotPreference || EMPTY_SET
+        ) || 0;
+      // const renditionKeySet = Helper.renditionKeys(this.state.rendition);
+      // const firstVisibleIndex = list.findIndex(({ key }) =>
+      //   renditionKeySet.has(key)
+      // );
+      // const pivotIndex = firstVisibleIndex >= 0 ? firstVisibleIndex : 0;
+      console.log('_update/relax', { pivotIndex, pivot: list[pivotIndex].key });
       layoutRelaxation(list, pivotIndex, this._layout, HEIGHT_ESTIMATOR);
       // TODO: we can actually check if this is true
       layoutChanged = true;
@@ -159,37 +188,37 @@ export default class Virtualizer<T> extends React.Component<
         '_update/runwayHeight',
         Helper.runwayHeight(this._layout, list)
       );
-      this.setState({
-        runwayHeight: Helper.runwayHeight(this._layout, list)
-      });
+      nextState.runwayHeight = Helper.runwayHeight(this._layout, list);
     }
-    console.log('_update', {
-      ...options,
+    console.log('_update/end', {
       layoutChanged,
       scrollAdjustment,
       heightsChanged
     });
     if (options.updateRendition || layoutChanged) {
-      const nextRendition = options.updateRendition
+      nextState.rendition = options.updateRendition
         ? Helper.calculateRendition(
             this._layout,
             list,
             viewportRect.translatedBy(scrollAdjustment)
           )
         : Helper.relayoutRendition(this.state.rendition, this._layout);
-      console.log('update/setRendition', nextRendition);
-      this.setState(
-        {
-          rendition: nextRendition
-        },
-        () => {
-          // TODO: magic constant
-          if (Math.abs(scrollAdjustment) > 3) {
-            console.log('_update/scrollAdjustment', scrollAdjustment);
-            this.props.viewport.scrollBy(scrollAdjustment);
-          }
+      // console.log('update/setRendition', nextRendition);
+    }
+    // TODO: magic constant
+    const shouldAdjustScroll = Math.abs(scrollAdjustment) > 3;
+    if (nextState.rendition || nextState.runwayHeight) {
+      this.setState(nextState, () => {
+        if (shouldAdjustScroll) {
+          console.log('_update/scrollAdjustment', scrollAdjustment);
+          console.timeStamp(`scrollBy-${scrollAdjustment}`);
+          this.props.viewport.scrollBy(scrollAdjustment);
         }
-      );
+      });
+    } else if (shouldAdjustScroll) {
+      console.log('_update/scrollAdjustment', scrollAdjustment);
+      console.timeStamp(`scrollBy-${scrollAdjustment}`);
+      this.props.viewport.scrollBy(scrollAdjustment);
     }
   }
 

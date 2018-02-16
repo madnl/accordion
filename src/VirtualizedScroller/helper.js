@@ -23,14 +23,23 @@ export function renditionKeys<T>(rendition: Rendition<T>): Set<string> {
 export function findPivotIndex<T>(
   list: List<T>,
   currentRendition: Rendition<T>,
-  previousRendition: Rendition<T>
+  pivotPreference: Set<string>
 ): ?number {
-  const currentRendered = renditionKeys(currentRendition);
-  const previouslyRendered = renditionKeys(previousRendition);
-  const index = list.findIndex(
-    ({ key }) => previouslyRendered.has(key) && currentRendered.has(key)
-  );
+  const preferredKey: ?string =
+    collectFirst(
+      currentRendition,
+      ({ item: { key } }) => pivotPreference.has(key) && key
+    ) || firstRenderedKey(currentRendition);
+  return preferredKey ? indexOfKey(list, preferredKey) : undefined;
+}
+
+function indexOfKey<T>(list: List<T>, key: string): ?number {
+  const index = list.findIndex(item => item.key === key);
   return index >= 0 ? index : undefined;
+}
+
+function firstRenderedKey<T>(rendition: Rendition<T>): ?string {
+  return rendition.length > 0 ? rendition[0].item.key : undefined;
 }
 
 export function normalizeTop<T>(
@@ -39,7 +48,7 @@ export function normalizeTop<T>(
   heightEstimator: HeightEstimator<T>
 ): number {
   const result = collectFirst(list, (item, index) => {
-    const firstRectangle = this._layout.get(item.key);
+    const firstRectangle = layout.getRectangle(item.key);
     return firstRectangle && { firstRectangle, index };
   });
   if (!result) {
@@ -60,7 +69,7 @@ export function calculateRendition<T>(
   list: List<T>,
   viewportRect: Rectangle
 ): Rendition<T> {
-  console.log('calculateRendition', { layout, list, viewportRect });
+  // console.log('calculateRendition', { layout, list, viewportRect });
   return collect(list, item => {
     const r = layout.getRectangle(item.key);
     return r && r.doesIntersectWith(viewportRect) && r.top >= 0
