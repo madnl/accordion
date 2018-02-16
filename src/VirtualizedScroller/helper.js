@@ -20,6 +20,7 @@ export function renditionKeys<T>(rendition: Rendition<T>): Set<string> {
   return new Set(rendition.map(({ item: { key } }) => key));
 }
 
+// TODO: this should select the most salient item on the viewport
 export function findPivotIndex<T>(
   list: List<T>,
   currentRendition: Rendition<T>,
@@ -93,13 +94,13 @@ export function isDenormalizationVisible<T>(
   layout: Layout,
   list: List<T>
 ): boolean {
-  const result = collectFirst(list, item => {
+  const result = collectFirst(list, (item, index) => {
     const r = layout.getRectangle(item.key);
     return (
       r &&
       r.doesIntersectWith(viewportRect) && {
         firstInViewRect: r,
-        firstInViewIndex
+        firstInViewIndex: index
       }
     );
   });
@@ -107,7 +108,11 @@ export function isDenormalizationVisible<T>(
     return false;
   }
   const { firstInViewRect, firstInViewIndex } = result;
-  return (firstInViewRect && firstInViewRect.top < 0) || firstInViewIndex === 0;
+  console.log({ firstInViewRect, firstInViewIndex });
+  return (
+    (firstInViewRect && firstInViewRect.top < 0) ||
+    (firstInViewIndex === 0 && firstInViewRect.top > 0)
+  );
 }
 
 export function isTopDenormalized<T>(layout: Layout, list: List<T>): boolean {

@@ -148,11 +148,6 @@ export default class Virtualizer<T> extends React.Component<
           this.state.rendition,
           options.pivotPreference || EMPTY_SET
         ) || 0;
-      // const renditionKeySet = Helper.renditionKeys(this.state.rendition);
-      // const firstVisibleIndex = list.findIndex(({ key }) =>
-      //   renditionKeySet.has(key)
-      // );
-      // const pivotIndex = firstVisibleIndex >= 0 ? firstVisibleIndex : 0;
       layoutRelaxation(list, pivotIndex, this._layout, HEIGHT_ESTIMATOR);
       // TODO: we can actually check if this is true
       layoutChanged = true;
