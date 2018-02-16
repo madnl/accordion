@@ -54,22 +54,9 @@ export default class Virtualizer<T> extends React.Component<
     window.v = this;
   }
 
-  // remove
-  counter = 0;
-
-  componentWillUpdate() {
-    console.timeStamp(`render-${this.counter}`);
-  }
-
   render() {
     const { renderItem } = this.props;
     const { rendition, runwayHeight } = this.state;
-    console.log(
-      `render-${this.counter}`,
-      rendition.map(({ item: { key }, offset }) => ({ key, offset }))
-    );
-    // console.timeStamp(`render-${this.counter}`);
-    this.counter++;
     return (
       <div
         style={{ position: 'relative', height: `${runwayHeight}px` }}
@@ -145,7 +132,6 @@ export default class Virtualizer<T> extends React.Component<
     if (!viewportRect) {
       return;
     }
-    console.log('_update', options);
     const { list } = this.props;
     let heightsChanged = false;
     let layoutChanged = false;
@@ -167,7 +153,6 @@ export default class Virtualizer<T> extends React.Component<
       //   renditionKeySet.has(key)
       // );
       // const pivotIndex = firstVisibleIndex >= 0 ? firstVisibleIndex : 0;
-      console.log('_update/relax', { pivotIndex, pivot: list[pivotIndex].key });
       layoutRelaxation(list, pivotIndex, this._layout, HEIGHT_ESTIMATOR);
       // TODO: we can actually check if this is true
       layoutChanged = true;
@@ -184,17 +169,8 @@ export default class Virtualizer<T> extends React.Component<
       layoutChanged = layoutChanged || scrollAdjustment > 0;
     }
     if (layoutChanged) {
-      console.log(
-        '_update/runwayHeight',
-        Helper.runwayHeight(this._layout, list)
-      );
       nextState.runwayHeight = Helper.runwayHeight(this._layout, list);
     }
-    console.log('_update/end', {
-      layoutChanged,
-      scrollAdjustment,
-      heightsChanged
-    });
     if (options.updateRendition || layoutChanged) {
       nextState.rendition = options.updateRendition
         ? Helper.calculateRendition(
@@ -203,21 +179,16 @@ export default class Virtualizer<T> extends React.Component<
             viewportRect.translatedBy(scrollAdjustment)
           )
         : Helper.relayoutRendition(this.state.rendition, this._layout);
-      // console.log('update/setRendition', nextRendition);
     }
     // TODO: magic constant
     const shouldAdjustScroll = Math.abs(scrollAdjustment) > 3;
     if (nextState.rendition || nextState.runwayHeight) {
       this.setState(nextState, () => {
         if (shouldAdjustScroll) {
-          console.log('_update/scrollAdjustment', scrollAdjustment);
-          console.timeStamp(`scrollBy-${scrollAdjustment}`);
           this.props.viewport.scrollBy(scrollAdjustment);
         }
       });
     } else if (shouldAdjustScroll) {
-      console.log('_update/scrollAdjustment', scrollAdjustment);
-      console.timeStamp(`scrollBy-${scrollAdjustment}`);
       this.props.viewport.scrollBy(scrollAdjustment);
     }
   }

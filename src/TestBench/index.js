@@ -56,6 +56,7 @@ export default class TestBench extends React.Component<Props, State> {
         id={id}
         onInsertAbove={this._handleInsertAbove}
         onInsertBelow={this._handleInsertBelow}
+        onRemove={this._handleRemove}
       />
     );
   };
@@ -66,6 +67,10 @@ export default class TestBench extends React.Component<Props, State> {
 
   _handleInsertBelow = (id: number) => {
     this._insertAtIndex(this.state.items.findIndex(elem => elem.id === id) + 1);
+  };
+
+  _handleRemove = (id: number) => {
+    this.setState({ items: this.state.items.filter(item => item.id !== id) });;
   };
 
   _insertAtIndex = (index: number) => {

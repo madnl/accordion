@@ -6,7 +6,8 @@ import { View, StyleSheet, Text, Button } from 'react-native-web';
 type Props = {
   id: number,
   onInsertAbove: number => void,
-  onInsertBelow: number => void
+  onInsertBelow: number => void,
+  onRemove: number => void
 };
 
 const styles = StyleSheet.create({
@@ -39,6 +40,7 @@ export default class Item extends React.Component<Props> {
           <Button onPress={this._handleInsertAbove} title="Add ↑" />
           <Button onPress={this._handleInsertBelow} title="Add ↓" />
         </View>
+        <Button onPress={this._handleRemove} title="Remove" />
       </View>
     );
   }
@@ -51,6 +53,11 @@ export default class Item extends React.Component<Props> {
   _handleInsertBelow = () => {
     const { onInsertBelow, id } = this.props;
     onInsertBelow(id);
+  };
+
+  _handleRemove = () => {
+    const { onRemove, id } = this.props;
+    onRemove(id);
   };
 }
 
