@@ -18,9 +18,6 @@ type State = {
   items: Elem[]
 };
 
-const renderItem = ({ id }: Elem) => (
-  <Item color={colorPalette[id % colorPalette.length]} text={String(id)} />
-);
 const itemKey = (item: Elem) => String(item.id);
 
 const PREPEND_COUNT = 2;
@@ -47,11 +44,37 @@ export default class TestBench extends React.Component<Props, State> {
           itemKey={itemKey}
           viewport={windowViewport}
           items={items}
-          renderItem={renderItem}
+          renderItem={this._renderItem}
         />
       </View>
     );
   }
+
+  _renderItem = ({ id }: Elem) => {
+    return (
+      <Item
+        id={id}
+        onInsertAbove={this._handleInsertAbove}
+        onInsertBelow={this._handleInsertBelow}
+      />
+    );
+  };
+
+  _handleInsertAbove = (id: number) => {
+    this._insertAtIndex(this.state.items.findIndex(elem => elem.id === id));
+  };
+
+  _handleInsertBelow = (id: number) => {
+    this._insertAtIndex(this.state.items.findIndex(elem => elem.id === id) + 1);
+  };
+
+  _insertAtIndex = (index: number) => {
+    const { items } = this.state;
+    const newItem = { id: items.length };
+    this.setState({
+      items: [...items.slice(0, index), newItem, ...items.slice(index)]
+    });
+  };
 
   _handlePrepend = () => {
     const { items } = this.state;
@@ -63,14 +86,6 @@ export default class TestBench extends React.Component<Props, State> {
     });
   };
 }
-
-const colorPalette = [
-  'rgb(216, 17, 89)',
-  'rgb(143, 45, 86)',
-  'rgb(33, 131, 128)',
-  'rgb(251, 177, 60)',
-  'rgb(115, 210, 222)'
-];
 
 const createItemList = (indexStart, indexEnd) =>
   [...Array(indexEnd - indexStart).keys()].map(index => ({
