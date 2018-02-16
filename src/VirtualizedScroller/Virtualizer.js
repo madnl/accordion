@@ -73,7 +73,7 @@ export default class Virtualizer<T> extends React.Component<
                 position: 'absolute',
                 transform: `translateY(${offset}px)`,
                 width: '100%',
-                transition: 'transform .2s ease'
+                transition: '.2s ease'
               }}
             >
               <Cell renderItem={renderItem} data={data} />
