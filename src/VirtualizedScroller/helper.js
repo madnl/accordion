@@ -7,6 +7,8 @@ import collectLast from '../modules/collectLast';
 import collect from '../modules/collect';
 import Rectangle from './Rectangle';
 import layoutRelaxation from './layoutRelaxation';
+import indexBy from '../modules/indexBy';
+import maxBy from '../modules/maxBy';
 
 export function pruneMissing<T>(
   rendition: Rendition<T>,
@@ -24,23 +26,17 @@ export function renditionKeys<T>(rendition: Rendition<T>): Set<string> {
 export function findPivotIndex<T>(
   list: List<T>,
   currentRendition: Rendition<T>,
-  pivotPreference: Set<string>
+  salience: Array<string>
 ): ?number {
-  const preferredKey: ?string =
-    collectFirst(
-      currentRendition,
-      ({ item: { key } }) => pivotPreference.has(key) && key
-    ) || firstRenderedKey(currentRendition);
-  return preferredKey ? indexOfKey(list, preferredKey) : undefined;
+  const salienceMap = indexBy(salience, key => key, (key, index) => index);
+  const currentKeys = currentRendition.map(item => item.item.key);
+  const mostSalientKey = maxBy(currentKeys, key => salienceMap[key] || -1);
+  return mostSalientKey ? indexOfKey(list, mostSalientKey) : undefined;
 }
 
 function indexOfKey<T>(list: List<T>, key: string): ?number {
   const index = list.findIndex(item => item.key === key);
   return index >= 0 ? index : undefined;
-}
-
-function firstRenderedKey<T>(rendition: Rendition<T>): ?string {
-  return rendition.length > 0 ? rendition[0].item.key : undefined;
 }
 
 export function normalizeTop<T>(
@@ -108,7 +104,6 @@ export function isDenormalizationVisible<T>(
     return false;
   }
   const { firstInViewRect, firstInViewIndex } = result;
-  console.log({ firstInViewRect, firstInViewIndex });
   return (
     (firstInViewRect && firstInViewRect.top < 0) ||
     (firstInViewIndex === 0 && firstInViewRect.top > 0)
@@ -149,3 +144,44 @@ export function runwayHeight<T>(layout: Layout, list: List<T>): number {
   );
   return lastRectangle ? lastRectangle.bottom : 0;
 }
+
+export function orderBySalience<T>(
+  rendition: Rendition<T>,
+  layout: Layout,
+  viewportRect: Rectangle
+): Array<string> {
+  const keys = rendition.map(({ item: { key } }) => key);
+  keys.sort((key1, key2) => {
+    const r1 = layout.getRectangle(key1);
+    const r2 = layout.getRectangle(key2);
+    if (!r2) {
+      return -1;
+    } else if (!r1) {
+      return 1;
+    } else {
+      return (
+        compareNum(
+          positioningGrade(r1, viewportRect),
+          positioningGrade(r2, viewportRect)
+        ) ||
+        compareNum(
+          Math.abs(r1.top - viewportRect.top),
+          Math.abs(r2.top - viewportRect.top)
+        )
+      );
+    }
+  });
+  return keys;
+}
+
+const positioningGrade = (r, viewportRect) => {
+  if (viewportRect.surrounds(r)) {
+    return 2;
+  } else if (viewportRect.doesIntersectWith(r)) {
+    return 1;
+  } else {
+    return 0;
+  }
+};
+
+const compareNum = (x: number, y: number) => (x < y ? -1 : x > y ? 1 : 0);

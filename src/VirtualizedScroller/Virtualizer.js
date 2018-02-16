@@ -24,12 +24,10 @@ type UpdateOptions = {
   syncHeights?: boolean,
   relaxLayout?: boolean,
   updateRendition?: boolean,
-  pivotPreference?: Set<string>
+  pivotPreference?: Array<string>
 };
 
 const HEIGHT_ESTIMATOR = () => 100;
-
-const EMPTY_SET = new Set();
 
 export default class Virtualizer<T> extends React.Component<
   Props<T>,
@@ -39,6 +37,7 @@ export default class Virtualizer<T> extends React.Component<
   _refs: Map<string, HTMLElement>;
   _runway: ?HTMLElement;
   _unlistenToScroll: ?() => void;
+  _previousSalience: Array<string> = [];
 
   constructor(props: Props<T>) {
     super(props);
@@ -121,10 +120,9 @@ export default class Virtualizer<T> extends React.Component<
     }
   }
 
-  componentDidUpdate(prevProps: Props<T>, prevState: State<T>) {
+  componentDidUpdate() {
     this._scheduleUpdateInNextFrame({
-      syncHeights: true,
-      pivotPreference: Helper.renditionKeys(prevState.rendition)
+      syncHeights: true
     });
   }
 
@@ -147,7 +145,7 @@ export default class Virtualizer<T> extends React.Component<
         Helper.findPivotIndex(
           list,
           this.state.rendition,
-          options.pivotPreference || EMPTY_SET
+          this._previousSalience
         ) || 0;
       layoutRelaxation(list, pivotIndex, this._layout, HEIGHT_ESTIMATOR);
       // TODO: we can actually check if this is true
@@ -178,6 +176,13 @@ export default class Virtualizer<T> extends React.Component<
     }
     // TODO: magic constant
     const shouldAdjustScroll = Math.abs(scrollAdjustment) > 3;
+    if (nextState.rendition) {
+      this._previousSalience = Helper.orderBySalience(
+        nextState.rendition,
+        this._layout,
+        viewportRect
+      );
+    }
     if (nextState.rendition || nextState.runwayHeight) {
       this.setState(nextState, () => {
         if (shouldAdjustScroll) {

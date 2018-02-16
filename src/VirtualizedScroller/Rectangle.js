@@ -28,4 +28,8 @@ export default class Rectangle {
   translatedBy(offset: number): Rectangle {
     return new Rectangle(this.top + offset, this.height);
   }
+
+  surrounds(another: Rectangle): boolean {
+    return this.top <= another.top && this.bottom >= another.bottom;
+  }
 }
