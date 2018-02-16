@@ -23,10 +23,12 @@ const itemKey = (item: Elem) => String(item.id);
 const PREPEND_COUNT = 2;
 
 export default class TestBench extends React.Component<Props, State> {
+  _idGen = createIdGen();
+
   constructor(props: Props) {
     super(props);
     this.state = {
-      items: createItemList(0, props.initialCount)
+      items: createItemList(props.initialCount, this._idGen)
     };
   }
 
@@ -70,12 +72,12 @@ export default class TestBench extends React.Component<Props, State> {
   };
 
   _handleRemove = (id: number) => {
-    this.setState({ items: this.state.items.filter(item => item.id !== id) });;
+    this.setState({ items: this.state.items.filter(item => item.id !== id) });
   };
 
   _insertAtIndex = (index: number) => {
     const { items } = this.state;
-    const newItem = { id: items.length };
+    const newItem = { id: this._idGen.call() };
     this.setState({
       items: [...items.slice(0, index), newItem, ...items.slice(index)]
     });
@@ -84,15 +86,22 @@ export default class TestBench extends React.Component<Props, State> {
   _handlePrepend = () => {
     const { items } = this.state;
     this.setState({
-      items: [
-        ...createItemList(items.length, items.length + PREPEND_COUNT),
-        ...items
-      ]
+      items: [...createItemList(PREPEND_COUNT, this._idGen), ...items]
     });
   };
 }
 
-const createItemList = (indexStart, indexEnd) =>
-  [...Array(indexEnd - indexStart).keys()].map(index => ({
-    id: index + indexStart
-  }));
+const createIdGen = () => {
+  let counter = 0;
+  return () => {
+    return counter++;
+  };
+};
+
+const createItemList = (times, idGen: () => number): Elem[] => {
+  const result = [];
+  for (let i = 0; i < times; i++) {
+    result[i] = { id: idGen() };
+  }
+  return result;
+};
