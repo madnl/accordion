@@ -14,7 +14,7 @@ export default <T>(
   );
   const currentKeys = currentRendition.map(item => item.item.key);
   const mostSalientKey = maxBy(currentKeys, key => salienceMap[key] || -1);
-  console.log('findPivotIndex', { salienceMap, mostSalientKey });
+  // console.log('findPivotIndex', { salienceMap, mostSalientKey });
   return mostSalientKey ? indexOfKey(list, mostSalientKey) : undefined;
 };
 

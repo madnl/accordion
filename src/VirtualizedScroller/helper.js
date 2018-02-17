@@ -152,15 +152,6 @@ export const orderBySalience = <T>(
       );
     }
   });
-  console.log('orderBySalience', {
-    keys,
-    grades: keys.map(key => [
-      key,
-      positioningGrade(layout.getRectangle(key), viewportRect)
-    ]),
-    viewportRect,
-    rects: layout._rectangles
-  });
   return keys;
 };
 

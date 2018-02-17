@@ -142,7 +142,7 @@ export default class Virtualizer<T> extends React.Component<
     if (options.relaxLayout || heightsChanged) {
       const pivotIndex =
         findPivotIndex(list, this.state.rendition, this._previousSalience) || 0;
-      console.log('_update/relax', { pivotIndex });
+      // console.log('_update/relax', { pivotIndex });
       layoutRelaxation(list, pivotIndex, this._layout, HEIGHT_ESTIMATOR);
       // TODO: we can actually check if this is true
       layoutChanged = true;

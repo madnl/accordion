@@ -4,7 +4,9 @@ import * as React from 'react';
 import VirtualizedScroller from '../VirtualizedScroller';
 import windowViewport from '../VirtualizedScroller/windowViewport';
 import Item from './Item';
-import { View, Button } from 'react-native-web';
+import { View } from 'react-native-web';
+import AppLayout from './AppLayout';
+import ControlPanel from './ControlPanel';
 
 type Elem = {
   id: number
@@ -15,7 +17,8 @@ type Props = {
 };
 
 type State = {
-  items: Elem[]
+  items: Elem[],
+  intervalId: ?number
 };
 
 const itemKey = (item: Elem) => String(item.id);
@@ -28,27 +31,34 @@ export default class TestBench extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
-      items: createItemList(props.initialCount, this._idGen)
+      items: createItemList(props.initialCount, this._idGen),
+      intervalId: undefined
     };
   }
 
   render() {
-    const { items } = this.state;
+    const { items, intervalId } = this.state;
     return (
-      <View>
-        <View>
-          <Button
-            onPress={this._handlePrepend}
-            title={`Prepend ${PREPEND_COUNT} items`}
-          />
-        </View>
+      <AppLayout
+        header={
+          <View>
+            <ControlPanel
+              itemCount={items.length}
+              onPrepend={this._handlePrepend}
+              onStreamToggle={this._handleStreamToggle}
+              prependCount={PREPEND_COUNT}
+              streamRunning={!!intervalId}
+            />
+          </View>
+        }
+      >
         <VirtualizedScroller
           itemKey={itemKey}
           viewport={windowViewport}
           items={items}
           renderItem={this._renderItem}
         />
-      </View>
+      </AppLayout>
     );
   }
 
@@ -83,11 +93,23 @@ export default class TestBench extends React.Component<Props, State> {
     });
   };
 
-  _handlePrepend = () => {
+  _handlePrepend = (count: number) => {
     const { items } = this.state;
     this.setState({
-      items: [...createItemList(PREPEND_COUNT, this._idGen), ...items]
+      items: [...createItemList(count, this._idGen), ...items]
     });
+  };
+
+  _handleStreamToggle = () => {
+    const { intervalId } = this.state;
+    if (intervalId) {
+      window.clearInterval(intervalId);
+    } else {
+      const intervalId = window.setInterval(() => {
+        this._insertAtIndex(0);
+      }, 1000);
+      this.setState({ intervalId });
+    }
   };
 }
 
