@@ -8,6 +8,7 @@ import * as Helper from './helper';
 import Scheduler from '../modules/Scheduler';
 import Layout from './Layout';
 import layoutRelaxation from './layoutRelaxation';
+import findPivotIndex from './findPivotIndex';
 
 type Props<T> = {|
   list: Item<T>[],
@@ -71,8 +72,7 @@ export default class Virtualizer<T> extends React.Component<
               style={{
                 position: 'absolute',
                 transform: `translateY(${offset}px)`,
-                width: '100%',
-                transition: '.2s ease'
+                width: '100%'
               }}
             >
               <Cell renderItem={renderItem} data={data} />
@@ -127,7 +127,7 @@ export default class Virtualizer<T> extends React.Component<
   }
 
   _update(options: UpdateOptions) {
-    const viewportRect = this._relativeViewRect();
+    let viewportRect = this._relativeViewRect();
     if (!viewportRect) {
       return;
     }
@@ -140,13 +140,9 @@ export default class Virtualizer<T> extends React.Component<
       heightsChanged = this._recordHeights();
     }
     if (options.relaxLayout || heightsChanged) {
-      // TODO: get previous rendition
       const pivotIndex =
-        Helper.findPivotIndex(
-          list,
-          this.state.rendition,
-          this._previousSalience
-        ) || 0;
+        findPivotIndex(list, this.state.rendition, this._previousSalience) || 0;
+      console.log('_update/relax', { pivotIndex });
       layoutRelaxation(list, pivotIndex, this._layout, HEIGHT_ESTIMATOR);
       // TODO: we can actually check if this is true
       layoutChanged = true;
@@ -162,16 +158,15 @@ export default class Virtualizer<T> extends React.Component<
       );
       layoutChanged = layoutChanged || scrollAdjustment > 0;
     }
+    if (scrollAdjustment > 0) {
+      viewportRect = viewportRect.translatedBy(scrollAdjustment);
+    }
     if (layoutChanged) {
       nextState.runwayHeight = Helper.runwayHeight(this._layout, list);
     }
     if (options.updateRendition || layoutChanged) {
       nextState.rendition = options.updateRendition
-        ? Helper.calculateRendition(
-            this._layout,
-            list,
-            viewportRect.translatedBy(scrollAdjustment)
-          )
+        ? Helper.calculateRendition(this._layout, list, viewportRect)
         : Helper.relayoutRendition(this.state.rendition, this._layout);
     }
     // TODO: magic constant

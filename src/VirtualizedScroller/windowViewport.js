@@ -16,10 +16,10 @@ const windowViewport = (wnd: typeof window): Viewport => ({
   },
 
   scrollBy(offset) {
-    const past = window.scrollY;
+    // const past = window.scrollY;
     window.scrollBy(0, offset);
-    const next = window.scrollY;
-    console.log('Actual scroll', next - past);
+    // const next = window.scrollY;
+    // console.log('Actual scroll', next - past);
   }
 });
 

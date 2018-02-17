@@ -3,9 +3,13 @@
     "browser": true,
     "es6": true
   },
-  "extends": ["eslint:recommended", "plugin:react/recommended", "prettier",
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "prettier",
     "prettier/flowtype",
-    "prettier/react"],
+    "prettier/react"
+  ],
   "parserOptions": {
     "ecmaFeatures": {
       "experimentalObjectRestSpread": true,
@@ -14,13 +18,27 @@
     "sourceType": "module"
   },
   "parser": "babel-eslint",
-  "plugins": ["react", "prettier"],
+  "plugins": [
+    "react",
+    "prettier"
+  ],
   "rules": {
     "indent": "off",
-    "linebreak-style": ["error", "unix"],
-    "quotes": ["error", "single"],
-    "semi": ["error", "always"],
+    "linebreak-style": [
+      "error",
+      "unix"
+    ],
+    "quotes": [
+      "error",
+      "single"
+    ],
     "no-console": "off",
-    "prettier/prettier": ["error", { "singleQuote": true, "printWidth": 80 }]
+    "prettier/prettier": [
+      "error",
+      {
+        "singleQuote": true,
+        "printWidth": 80
+      }
+    ]
   }
 }

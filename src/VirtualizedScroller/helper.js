@@ -7,8 +7,6 @@ import collectLast from '../modules/collectLast';
 import collect from '../modules/collect';
 import Rectangle from './Rectangle';
 import layoutRelaxation from './layoutRelaxation';
-import indexBy from '../modules/indexBy';
-import maxBy from '../modules/maxBy';
 
 export function pruneMissing<T>(
   rendition: Rendition<T>,
@@ -20,23 +18,6 @@ export function pruneMissing<T>(
 
 export function renditionKeys<T>(rendition: Rendition<T>): Set<string> {
   return new Set(rendition.map(({ item: { key } }) => key));
-}
-
-// TODO: this should select the most salient item on the viewport
-export function findPivotIndex<T>(
-  list: List<T>,
-  currentRendition: Rendition<T>,
-  salience: Array<string>
-): ?number {
-  const salienceMap = indexBy(salience, key => key, (key, index) => index);
-  const currentKeys = currentRendition.map(item => item.item.key);
-  const mostSalientKey = maxBy(currentKeys, key => salienceMap[key] || -1);
-  return mostSalientKey ? indexOfKey(list, mostSalientKey) : undefined;
-}
-
-function indexOfKey<T>(list: List<T>, key: string): ?number {
-  const index = list.findIndex(item => item.key === key);
-  return index >= 0 ? index : undefined;
 }
 
 export function normalizeTop<T>(
@@ -145,11 +126,11 @@ export function runwayHeight<T>(layout: Layout, list: List<T>): number {
   return lastRectangle ? lastRectangle.bottom : 0;
 }
 
-export function orderBySalience<T>(
+export const orderBySalience = <T>(
   rendition: Rendition<T>,
   layout: Layout,
   viewportRect: Rectangle
-): Array<string> {
+): Array<string> => {
   const keys = rendition.map(({ item: { key } }) => key);
   keys.sort((key1, key2) => {
     const r1 = layout.getRectangle(key1);
@@ -171,16 +152,25 @@ export function orderBySalience<T>(
       );
     }
   });
+  console.log('orderBySalience', {
+    keys,
+    grades: keys.map(key => [
+      key,
+      positioningGrade(layout.getRectangle(key), viewportRect)
+    ]),
+    viewportRect,
+    rects: layout._rectangles
+  });
   return keys;
-}
+};
 
 const positioningGrade = (r, viewportRect) => {
   if (viewportRect.surrounds(r)) {
-    return 2;
+    return 0;
   } else if (viewportRect.doesIntersectWith(r)) {
     return 1;
   } else {
-    return 0;
+    return 2;
   }
 };
 
