@@ -1,7 +1,13 @@
 // @flow
 
 import Layout from './Layout';
-import type { Rendition, List, HeightEstimator } from './types';
+import type {
+  Rendition,
+  List,
+  HeightEstimator,
+  RenderableItem,
+  Item
+} from './types';
 import collectFirst from '../modules/collectFirst';
 import collectLast from '../modules/collectLast';
 import collect from '../modules/collect';
@@ -51,7 +57,7 @@ export function calculateRendition<T>(
   return collect(list, item => {
     const r = layout.getRectangle(item.key);
     return r && r.doesIntersectWith(viewportRect) && r.top >= 0
-      ? { item, offset: r.top }
+      ? renderableItem(item, r)
       : undefined;
   });
 }
@@ -62,7 +68,7 @@ export function relayoutRendition<T>(
 ): Rendition<T> {
   return collect(rendition, ({ item }) => {
     const r = layout.getRectangle(item.key);
-    return r && { item, offset: r.top };
+    return r && renderableItem(item, r);
   });
 }
 
@@ -125,6 +131,14 @@ export function runwayHeight<T>(layout: Layout, list: List<T>): number {
   );
   return lastRectangle ? lastRectangle.bottom : 0;
 }
+
+export const renderableItem = <T>(
+  item: Item<T>,
+  rectangle: Rectangle
+): RenderableItem<T> => {
+  const roundedTop = Math.round(rectangle.top * 100) / 100;
+  return { item, offset: roundedTop };
+};
 
 export const orderBySalience = <T>(
   rendition: Rendition<T>,

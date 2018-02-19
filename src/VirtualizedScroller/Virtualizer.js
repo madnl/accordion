@@ -9,6 +9,7 @@ import Scheduler from '../modules/Scheduler';
 import Layout from './Layout';
 import layoutRelaxation from './layoutRelaxation';
 import findPivotIndex from './findPivotIndex';
+import * as Debug from './debug';
 
 type Props<T> = {|
   list: Item<T>[],
@@ -121,6 +122,10 @@ export default class Virtualizer<T> extends React.Component<
   }
 
   componentDidUpdate() {
+    console.log(
+      'componentDidUpdate',
+      Debug.renditionDigest(this.state.rendition)
+    );
     this._scheduleUpdateInNextFrame({
       syncHeights: true
     });
@@ -156,13 +161,16 @@ export default class Virtualizer<T> extends React.Component<
         list,
         HEIGHT_ESTIMATOR
       );
+      scrollAdjustment && console.log('normalizing', { scrollAdjustment });
       layoutChanged = layoutChanged || scrollAdjustment > 0;
     }
     if (scrollAdjustment > 0) {
       viewportRect = viewportRect.translatedBy(scrollAdjustment);
     }
     if (layoutChanged) {
-      nextState.runwayHeight = Helper.runwayHeight(this._layout, list);
+      nextState.runwayHeight = Math.ceil(
+        Helper.runwayHeight(this._layout, list)
+      );
     }
     if (options.updateRendition || layoutChanged) {
       nextState.rendition = options.updateRendition
@@ -179,12 +187,14 @@ export default class Virtualizer<T> extends React.Component<
       );
     }
     if (nextState.rendition || nextState.runwayHeight) {
+      // Debug.logRendition('rendition update', nextState.rendition || []);
       this.setState(nextState, () => {
         if (shouldAdjustScroll) {
           this.props.viewport.scrollBy(scrollAdjustment);
         }
       });
     } else if (shouldAdjustScroll) {
+      console.log('No rendition update');
       this.props.viewport.scrollBy(scrollAdjustment);
     }
   }
