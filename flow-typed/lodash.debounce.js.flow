@@ -1,0 +1,9 @@
+// @flow
+
+declare module "lodash.debounce" {
+  declare export default function debounce(
+    callback: () => void,
+    waitMs?: number,
+    options?: { leading?: boolean, maxWait?: number, trailing?: boolean }
+  ): () => void;
+}

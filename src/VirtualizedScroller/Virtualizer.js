@@ -10,6 +10,7 @@ import Layout from './Layout';
 import layoutRelaxation from './layoutRelaxation';
 import findPivotIndex from './findPivotIndex';
 import * as Debug from './debug';
+import debounce from 'lodash.debounce';
 
 type Props<T> = {|
   list: Item<T>[],
@@ -22,14 +23,15 @@ type State<T> = {|
   runwayHeight: number
 |};
 
-type UpdateOptions = {
+type UpdateOptions = {|
   syncHeights?: boolean,
   relaxLayout?: boolean,
   updateRendition?: boolean,
-  pivotPreference?: Array<string>
-};
+  quiescent?: boolean
+|};
 
 const HEIGHT_ESTIMATOR = () => 100;
+const QUIESCENCE_INTERVAL_MS = 1500;
 
 export default class Virtualizer<T> extends React.Component<
   Props<T>,
@@ -122,16 +124,13 @@ export default class Virtualizer<T> extends React.Component<
   }
 
   componentDidUpdate() {
-    console.log(
-      'componentDidUpdate',
-      Debug.renditionDigest(this.state.rendition)
-    );
     this._scheduleUpdateInNextFrame({
       syncHeights: true
     });
   }
 
   _update(options: UpdateOptions) {
+    console.log('_update', options);
     let viewportRect = this._relativeViewRect();
     if (!viewportRect) {
       return;
@@ -140,14 +139,13 @@ export default class Virtualizer<T> extends React.Component<
     let heightsChanged = false;
     let layoutChanged = false;
     let scrollAdjustment = 0;
-    let nextState: { rendition?: Rendition<T>, runwayHeight?: number } = {};
+    const nextState: $Shape<State<T>> = {};
     if (options.syncHeights) {
       heightsChanged = this._recordHeights();
     }
     if (options.relaxLayout || heightsChanged) {
       const pivotIndex =
         findPivotIndex(list, this.state.rendition, this._previousSalience) || 0;
-      // console.log('_update/relax', { pivotIndex });
       layoutRelaxation(list, pivotIndex, this._layout, HEIGHT_ESTIMATOR);
       // TODO: we can actually check if this is true
       layoutChanged = true;
@@ -161,7 +159,6 @@ export default class Virtualizer<T> extends React.Component<
         list,
         HEIGHT_ESTIMATOR
       );
-      scrollAdjustment && console.log('normalizing', { scrollAdjustment });
       layoutChanged = layoutChanged || scrollAdjustment > 0;
     }
     if (scrollAdjustment > 0) {
@@ -187,14 +184,12 @@ export default class Virtualizer<T> extends React.Component<
       );
     }
     if (nextState.rendition || nextState.runwayHeight) {
-      // Debug.logRendition('rendition update', nextState.rendition || []);
       this.setState(nextState, () => {
         if (shouldAdjustScroll) {
           this.props.viewport.scrollBy(scrollAdjustment);
         }
       });
     } else if (shouldAdjustScroll) {
-      console.log('No rendition update');
       this.props.viewport.scrollBy(scrollAdjustment);
     }
   }
@@ -204,6 +199,10 @@ export default class Virtualizer<T> extends React.Component<
     options => this._update(options),
     (prev, next) => ({ ...prev, ...next })
   );
+
+  _scheduleQuiescentUpdate = debounce(() => {
+    this._scheduleUpdateInNextFrame({ quiescent: true });
+  }, QUIESCENCE_INTERVAL_MS);
 
   _setRef(key: string, elem: ?HTMLElement) {
     if (elem) {
@@ -217,6 +216,7 @@ export default class Virtualizer<T> extends React.Component<
     this._scheduleUpdateInNextFrame({
       updateRendition: true
     });
+    this._scheduleQuiescentUpdate();
   };
 
   _relativeViewRect() {
