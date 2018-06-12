@@ -27,6 +27,7 @@ export default class RecyclingContainer<T> extends React.Component<Props<T>> {
   }
 
   componentWillReceiveProps(props: Props<T>) {
+    // TODO(optimize)
     if (this.props.rendition !== props.rendition) {
       const newItems = new Set(props.rendition.map(({ item }) => item.key));
       const recycledSlots = collect(
@@ -36,14 +37,15 @@ export default class RecyclingContainer<T> extends React.Component<Props<T>> {
       const nextAssignment = new Map(
         props.rendition.map(({ item: { key } }) => {
           const current = this._assignment.get(key);
+          let slot: Slot;
           if (current) {
-            return [key, current];
+            slot = current;
           } else if (recycledSlots.length > 0) {
-            const recycledSlot = recycledSlots.pop();
-            return [key, recycledSlot];
+            slot = recycledSlots.pop();
           } else {
-            return [key, this._slotGen()];
+            slot = this._slotGen();
           }
+          return [key, slot];
         })
       );
       this._assignment = nextAssignment;

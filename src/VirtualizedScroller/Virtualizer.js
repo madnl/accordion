@@ -3,13 +3,11 @@
 import * as React from 'react';
 import type { Viewport } from './Viewport';
 import type { Item, Rendition } from './types';
-import Cell from './Cell';
 import * as Helper from './helper';
 import Scheduler from '../modules/Scheduler';
 import Layout from './Layout';
 import layoutRelaxation from './layoutRelaxation';
 import findPivotIndex from './findPivotIndex';
-import * as Debug from './debug';
 import debounce from 'lodash.debounce';
 import RecyclingContainer from './RecyclingContainer';
 
@@ -130,7 +128,9 @@ export default class Virtualizer<T> extends React.Component<
     let heightsChanged = false;
     let layoutChanged = false;
     let scrollAdjustment = 0;
+    /* eslint-disable no-undef */
     const nextState: $Shape<State<T>> = {};
+    /* eslint-enable no-undef */
     if (options.syncHeights) {
       heightsChanged = this._recordHeights();
     }
