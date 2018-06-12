@@ -30,12 +30,31 @@ const styles = StyleSheet.create({
 });
 
 export default class Item extends React.Component<Props> {
+  _previousId: number | void;
+
+  constructor(props: Props) {
+    super(props);
+    this._previousId = undefined;
+  }
+
+  componentWillReceiveProps(props: Props) {
+    const { id } = this.props;
+    if (id !== props.id) {
+      this._previousId = id;
+    }
+  }
+
   render() {
     const { id } = this.props;
     const color = colorPalette[id % colorPalette.length];
     return (
       <View style={[styles.root, { backgroundColor: color }]}>
-        <Text style={styles.text}>{id}</Text>
+        <Text style={styles.text}>
+          {id}
+          {typeof this._previousId === 'number' &&
+            this._previousId !== id &&
+            `(${this._previousId})`}
+        </Text>
         <View style={styles.buttonRow}>
           <Button onPress={this._handleInsertAbove} title="Add ↑" />
           <Button onPress={this._handleInsertBelow} title="Add ↓" />

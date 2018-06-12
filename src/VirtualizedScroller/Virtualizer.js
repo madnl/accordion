@@ -11,6 +11,7 @@ import layoutRelaxation from './layoutRelaxation';
 import findPivotIndex from './findPivotIndex';
 import * as Debug from './debug';
 import debounce from 'lodash.debounce';
+import RecyclingContainer from './RecyclingContainer';
 
 type Props<T> = {|
   list: Item<T>[],
@@ -67,21 +68,11 @@ export default class Virtualizer<T> extends React.Component<
           this._runway = elem;
         }}
       >
-        {rendition.map(({ item: { data, key }, offset }) => {
-          return (
-            <div
-              key={key}
-              ref={elem => this._setRef(key, elem)}
-              style={{
-                position: 'absolute',
-                transform: `translateY(${offset}px)`,
-                width: '100%'
-              }}
-            >
-              <Cell renderItem={renderItem} data={data} />
-            </div>
-          );
-        })}
+        <RecyclingContainer
+          rendition={rendition}
+          renderItem={renderItem}
+          cellRef={this._setRef}
+        />
       </div>
     );
   }
@@ -204,13 +195,13 @@ export default class Virtualizer<T> extends React.Component<
     this._scheduleUpdateInNextFrame({ quiescent: true });
   }, QUIESCENCE_INTERVAL_MS);
 
-  _setRef(key: string, elem: ?HTMLElement) {
+  _setRef = (key: string, elem: ?HTMLElement) => {
     if (elem) {
       this._refs.set(key, elem);
     } else {
       this._refs.delete(key);
     }
-  }
+  };
 
   _handleScroll = () => {
     this._scheduleUpdateInNextFrame({
