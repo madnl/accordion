@@ -13,6 +13,7 @@ import collectLast from '../modules/collectLast';
 import collect from '../modules/collect';
 import Rectangle from './Rectangle';
 import layoutRelaxation from './layoutRelaxation';
+import maxBy from '../modules/maxBy';
 
 export function pruneMissing<T>(
   rendition: Rendition<T>,
@@ -51,15 +52,40 @@ export function normalizeTop<T>(
 export function calculateRendition<T>(
   layout: Layout,
   list: List<T>,
-  viewportRect: Rectangle
+  viewportRect: Rectangle,
+  previousRendition: Rendition<T>
 ): Rendition<T> {
-  // console.log('calculateRendition', { layout, list, viewportRect });
-  return collect(list, item => {
+  // TODO(optimize)
+  const candidateRendition = collect(list, item => {
     const r = layout.getRectangle(item.key);
     return r && r.doesIntersectWith(viewportRect) && r.top >= 0
       ? renderableItem(item, r)
       : undefined;
   });
+  const newlyRendered = new Set(candidateRendition.map(({ item }) => item.key));
+  const pastRendered = new Set(previousRendition.map(({ item }) => item.key));
+  const removed = collect(
+    previousRendition,
+    ({ item }) => (!newlyRendered.has(item.key) ? item : undefined)
+  );
+  const added = candidateRendition.filter(
+    ({ item }) => !pastRendered.has(item.key)
+  ).length;
+  const leaveBehind =
+    added === 0 && removed.length > 0
+      ? maxBy(removed, ({ key }) => {
+          const r = layout.getRectangle(key);
+          return r
+            ? -Math.abs(r.top - viewportRect.top)
+            : Number.NEGATIVE_INFINITY;
+        })
+      : undefined;
+  if (leaveBehind) {
+    console.log({ leaveBehindKey: leaveBehind.key });
+    const r = layout.getRectangle(leaveBehind.key);
+    r && candidateRendition.push(renderableItem(leaveBehind, r));
+  }
+  return candidateRendition;
 }
 
 export function relayoutRendition<T>(

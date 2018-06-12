@@ -59,6 +59,9 @@ export default class Virtualizer<T> extends React.Component<
   render() {
     const { renderItem } = this.props;
     const { rendition, runwayHeight } = this.state;
+    console.log(
+      `RENDER - ${JSON.stringify(rendition.map(({ item }) => item.key))}`
+    );
     return (
       <div
         style={{ position: 'relative', height: `${runwayHeight}px` }}
@@ -119,7 +122,7 @@ export default class Virtualizer<T> extends React.Component<
   }
 
   _update(options: UpdateOptions) {
-    console.log('_update', options);
+    // console.log('_update', options);
     let viewportRect = this._relativeViewRect();
     if (!viewportRect) {
       return;
@@ -162,7 +165,12 @@ export default class Virtualizer<T> extends React.Component<
     }
     if (options.updateRendition || layoutChanged) {
       nextState.rendition = options.updateRendition
-        ? Helper.calculateRendition(this._layout, list, viewportRect)
+        ? Helper.calculateRendition(
+            this._layout,
+            list,
+            viewportRect,
+            this.state.rendition
+          )
         : Helper.relayoutRendition(this.state.rendition, this._layout);
     }
     // TODO: magic constant
